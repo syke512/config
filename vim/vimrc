@@ -1,0 +1,189 @@
+set ts=4
+set sw=4
+set et
+set ai
+set tw=78
+" set ttymouse=xterm2
+set mouse=a
+set incsearch
+set hlsearch
+set ruler
+set sessionoptions=blank,buffers,curdir,folds,help,tabpages,winsize,terminal
+
+" C-indent options
+" http://vimhelp.appspot.com/indent.txt.html#cinoptions-values
+" (0 align with open paranthesis
+set cinoptions=(0
+
+" fix backspace
+" set t_kb
+set <BS>=
+
+if !has('nvim')
+    " fix delete key
+    fixdel
+
+    set term=$TERM
+endif
+
+if has('nvim')
+    let g:python3_host_prog = '/usr/bin/python3'
+    let g:perl_host_prog = '/usr/bin/perl'
+    set clipboard+=unnamedplus
+    let g:user_emmet_leader_key=','
+endif
+
+" KEep at least 1 line above/below the cursor
+set scrolloff=1
+
+" Keep 5 columns left/right of cursor when nowrap is set
+set sidescrolloff=5
+
+" Automatically read file changes that occur outside of VIM
+set autoread
+
+
+set t_ku=OA
+set t_kd=OB
+set t_kr=OC
+set t_kl=OD
+set t_kP=[5~
+set t_kN=[6~
+set t_kD=[3~
+
+" vim won't resize other windows when split or unsplit
+set noequalalways
+
+" tell netrw not to use a swapfile
+let g:netrw_use_noswf=0
+
+" insert mode only: press F2 then past text to avoid formatting. mode is show 
+" in status line.
+set pastetoggle=<F2>
+set showmode
+
+" Plugins
+filetype plugin on
+filetype indent on
+
+set syntax=on
+syntax enable
+
+set colorcolumn=80
+highlight OverLength ctermbg=red ctermfg=white guibg=#592929
+autocmd VimEnter,WinEnter *.c,*.h,*.cpp,*.hpp,*.pl,*.pm match OverLength /\%80v.\+/
+
+au bufread,bufnewfile,bufenter *.sh syntax keyword shTodo contained XXX TODO FIXME README NOTE
+au bufread,bufnewfile,bufenter *.c,*.h syntax keyword cTodo contained XXX TODO FIXME README NOTE
+
+" strip white space on save
+au bufwritepre *.c,*.h,*.cpp,*.hpp,*.pl,*.pm,*.sh,*.cfg :call StripWhiteSpace()
+
+" auto comments for sh scripts
+au FileType sh setlocal formatoptions+=r
+
+
+au bufread,bufnewfile,bufenter Makefile set sw=4 noexpandtab ts=4
+
+" auto-completion
+" http://vim.wikia.com/wiki/Make_Vim_completion_popup_menu_work_just_line_in_an_IDE
+" AutoCompPop: https://vim.sourceforge.io/scripts/script.php?script_id=1879
+" SuperTab: https://vim.sourceforge.io/scripts/script.php?script_id=1643
+set completeopt=longest,menuone
+
+" Keep menu item always highlighted and narrow matches.
+" These are for CTRL-N and CTRL-P popups
+inoremap <expr> <C-n> pumvisible() ? '<C-n>' : '<C-n><C-r>=pumvisible() ? 
+    \ "\<lt>Down>" : ""<CR>e
+
+inoremap <expr> <C-p> pumvisible() ? '<C-p>' : '<C-p><C-r>=pumvisible() ? 
+    \ "\<lt>Down>" : ""<CR>e
+
+
+" KEY BINDINGS
+
+map <F1>        :call UpdateCTAgs(1)<CR>
+map <F2>        :Explore
+map <F3>        :call ToggleFoldColumn()<CR>
+map <F5>        <C-T>
+map <F6>        g]
+map <F7>		:echo synIDattr(synID(line("."), col("."), 1), "name")<CR>
+map <F8>        :set syn=typescript<CR>
+
+map <C-H>pf     :call PerlFunctionHeader(line("."))<CR>
+map <C-H>psf    :call PerlSectionHeader(line("."),"FUNCTIONS",77)<CR>
+map <C-H>psg    :call PerlSectionHeader(line(","),"GLOBALS",77)<CR>
+
+map ref         :vi "%"<CR>
+
+" TODO matchit macro
+
+" vimrc-general
+:function! PerlFunctionHeader(lineNumber)
+    exec "perl perlFunctionHeader " . (a:lineNumber)
+:endfunction
+
+:function! PerlSectionHeader(lineNumber)
+    exec "perl perlSectionHeader " . (a:lineNumber)
+:endfunction
+
+:function! ToggleFoldColumn()
+    if &foldcolumn == 4
+        set foldcolumn=0
+    else
+        set foldcolumn=4
+    endif
+:endfunction
+
+:function StripWhiteSpace()
+    let l:save_cursor = getpos('.')
+    %s/\s\+$//e
+    call setpos('.', l:save_cursor)
+:endfunction
+
+" vimrc-lkcs
+" TODO linux kernel style paths: see linuxsty module
+"let g:linuxsty_patterns = [ "/path/to/regex-\\d\\+/dir/" ]
+
+" vimrc-ctags-perl
+perl << PERL_MODULE
+
+sub getCheckoutDir($) {
+    my ($cwd) = @_;
+
+    # VIM::Msg(" cwd: $cwd")
+    # TODO store in variable, etc
+}
+
+sub updateAllTags($) {
+    my ($update) = @_;
+
+    # TODO
+    # $curbuf->append(1, "message") if ($debug);
+
+    my $ctags;
+    $ctags = "ctags -R -f path/.ctags --c++-kinds=+p --c-kinds=+p ".
+        "--fields=+iaS --extra=+q path/to/src";
+
+    # TODO system($ctags);
+    if ($update) {
+        VIM::Msg(" Tags updated ");
+    }
+
+    # TODO VIM::SetOption("tags=path/to/.ctags,path/to/.pltags");
+}
+
+PERL_MODULE
+
+" vimrc-ctags
+:function UpdateCTags(update)
+    exec "perl updateAllTags ".(a:update)
+:endfunction
+
+exec "perl getCheckoutDir $ENV{PWD}"
+:call UpdateCTags(0)
+
+source ~/.vimrc-plug
+if has('nvim')
+    source ~/.vimrc-coc
+endif
